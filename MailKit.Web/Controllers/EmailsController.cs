@@ -22,8 +22,8 @@ namespace MailKit.Web.Controllers
         public async Task<ActionResult> Send(CancellationToken cancellationToken)
         {
             var message = new MimeMessage();
-            message.From.Add(new MailboxAddress("DK", "d.o.kozhevnikov@gmail.com"));
-            message.To.Add(new MailboxAddress("DK", "dimitron2003@mail.ru"));
+            message.From.Add(new MailboxAddress("IP", "IVPetrov@innoca.local"));
+            message.To.Add(new MailboxAddress("IP", "igvapetrov@inno.tech"));
             message.Subject = "TEST";
 
             message.Body = new TextPart(TextFormat.Plain)

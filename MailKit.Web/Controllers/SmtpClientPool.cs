@@ -19,11 +19,18 @@ namespace MailKit.Web.Controllers
 
         public SmtpClientPool(int connectionsCount = 1)
         {
+            // проверим параметр на корректность
+            int n = connectionsCount;
+            if (n <= 0) {
+                n = 1;
+            }
+            // создаём пул клиентов
             _clients = new ConcurrentBag<SmtpClient>();
-            for (int i = 0; i < connectionsCount; i++)
+            for (int i = 0; i < n; i++)
                 _clients.Add(new SmtpClient());
-
-            _wait.Set();           
+            // открываем турникет
+            _wait.Set();
+            // запускаем таймер для поддержания соединений
             _timer.Elapsed += SendNoOp;
             _timer.AutoReset = true;
             _timer.Start();
@@ -37,19 +44,23 @@ namespace MailKit.Web.Controllers
         public async Task SendAsync(MimeMessage message, CancellationToken token)
         {
             SmtpClient? client;
+            // выдёргиваем клиента из пула или ждём у турникета, если свободных нет
             while (_clients.TryTake(out client) is false)
                 _wait.WaitOne();
 
             try
             {
+                // если соединение потеряно, то восстанавливаем
                 if (client.IsConnected is false)
                     await client.ConnectAsync(token);
-
+                // отправляем письмо
                 await client.SendAsync(message, token);
             }
             finally
             {
+                // добавляем клиента обратно в пул
                 _clients.Add(client);
+                // освобождаем турникет
                 _wait.Set();
             }
         }
@@ -60,27 +71,30 @@ namespace MailKit.Web.Controllers
         private async void SendNoOp(object? sender, ElapsedEventArgs e)
         {
             var returnClients = new List<SmtpClient>();
-
+            // проверяем есть ли свободные клиенты
             if (_clients.TryPeek(out _) is false)
-                return;
+                return; // свободных клиентов нет - уходим
 
             try
             {
+                // пока есть свободные клиенты, выдёргиваем их в отдельный список
                 while (_clients.TryTake(out var client))
                     returnClients.Add(client);
-
+                // проверяем всех надёрганых клиентов
                 await Task.WhenAll(returnClients.Select(async c => 
                 {
-                    if (c.IsConnected)
+                    if (c.IsConnected) // если соединение открыто, то посылаем NoOp для его поддержания
                         await c.NoOpAsync();
                 }));
             }
             finally
             {
+                // напоследок запихиваем всех обработанных обратно в пул
                 foreach (var returnClient in returnClients)
                     _clients.Add(returnClient);
-
-                _wait.Set();
+                // и открываем турникет, если что-то было обработано
+                if (returnClients.Count > 0)
+                    _wait.Set();
             }
         }
 
@@ -99,9 +113,9 @@ namespace MailKit.Web.Controllers
 
 public static class SmtpClientExtensions
 {
-    private const string _server = "smtp.gmail.com";
-    private const string _login = "youremailhere@gmail.com";
-    private const string _password = "your app password here";
+    private const string _server = "10.4.107.10";
+    private const string _login = @"innoca\IVPetrov";
+    private const string _password = "HM0rVuto64";
     private const int _port = 587;
 
     /// <summary>
@@ -109,6 +123,7 @@ public static class SmtpClientExtensions
     /// </summary>
     public static async Task ConnectAsync(this SmtpClient client, CancellationToken cancellationToken)
     {
+        client.ServerCertificateValidationCallback = (s, c, h, e) => true;
         await client.ConnectAsync(_server, _port, SecureSocketOptions.StartTls, cancellationToken);
         await client.AuthenticateAsync(_login, _password, cancellationToken);
     }
