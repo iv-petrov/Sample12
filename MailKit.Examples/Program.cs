@@ -10,8 +10,8 @@ internal class Program
     static async Task Main(string[] args)
     {
         var message = new MimeMessage();
-        message.From.Add(new MailboxAddress("DK", "d.o.kozhevnikov@gmail.com"));
-        message.To.Add(new MailboxAddress("DK", "dimitron2003@mail.ru"));
+        message.From.Add(new MailboxAddress("IP", "IVPetrov@innoca.local"));
+        message.To.Add(new MailboxAddress("IP", "igvapetrov@inno.tech"));
         message.Subject = "TEST";
 
         message.Body = new TextPart(TextFormat.Plain)
@@ -23,8 +23,9 @@ internal class Program
         var token = cancellationTokenSource.Token;
     
         using var client = new SmtpClient();
-        await client.ConnectAsync("smtp.gmail.com", 587, SecureSocketOptions.StartTls, token);
-        await client.AuthenticateAsync("d.o.kozhevnikov@gmail.com", "not my real app password", token);
+        client.ServerCertificateValidationCallback = (s, c, h, e) => true;
+        await client.ConnectAsync("10.4.107.10", 587, SecureSocketOptions.StartTls, token);
+        await client.AuthenticateAsync(@"innoca\IVPetrov", "HM0rVuto64", token);
 
         lock (client.SyncRoot)
         {

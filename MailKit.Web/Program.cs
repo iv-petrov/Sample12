@@ -10,16 +10,14 @@ namespace MailKit.Web
 
             // Add services to the container.
 
-            builder.Services
-                .AddSingleton<SmtpClientPool>(_ => new SmtpClientPool(2))
-                .AddControllers();
+            builder.Services.AddControllers();
+            builder.Services.AddSingleton<SmtpClientPool>(_ => new SmtpClientPool(2));
 
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
 
             app.UseAuthorization();
-
 
             app.MapControllers();
 
